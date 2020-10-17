@@ -199,7 +199,9 @@ class Evaluator:
         f.close()
         os.remove(f'${name}.BaRT')
     def run(self,string):
-        f=open(file, 'r')
+        f=open(string, 'w+')
+        f.write(string)
+        f.seek(0)
         content=f.readlines()
         lines=(line.rstrip() for line in content)
         lines=list(line for line in lines if line)
@@ -348,15 +350,10 @@ import re
 def decompile(content):
   return re.sub(r'x(\d+)/', lambda match: chr(int(match.group(1))-1+ord('a')), content)
 def main():
-    if run.endswith('.bac'):
-        decompile(open(run,'r').read())
-        FileRun=run.replace('.bac','')
-        decomp=open(f'{FileRun}.ba','w+')
-        decomp.write(decompile(open(run,'r').read()))
-        decomp.close()
-        ev=Evaluator(f'{FileRun}.ba')
-        ev.run(f'{FileRun}.ba')
-        os.remove(f'{FileRun}.ba')
-    else:
-        ev=Evaluator(run)
-        ev.run(run)
+    ev=Evaluator(run)
+    ev.run(run)
+print("Bareline - Bare")
+print("Made by Georges Abdulahad")
+while True:
+    run=input(f'>>> ')
+    main()
