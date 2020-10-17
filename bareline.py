@@ -350,8 +350,12 @@ import re
 def decompile(content):
   return re.sub(r'x(\d+)/', lambda match: chr(int(match.group(1))-1+ord('a')), content)
 def main():
-    ev=Evaluator(run)
-    ev.run(run)
+    try:
+        ev=Evaluator(run)
+        ev.run(run)
+    except:
+        print("Prevented crash.")
+        GrammarError(f"Wrong grammar usage: '{word}'. Word is not found in our keywords, and isn't quoted.")
 print("Bareline - Bare")
 print("Made by Georges Abdulahad")
 while True:
