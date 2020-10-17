@@ -199,10 +199,11 @@ class Evaluator:
         f.close()
         os.remove(f'${name}.BaRT')
     def run(self,string):
-        f=open(string, 'w+')
+        f=open(f'{string}.BaRT', 'w+')
         f.write(string)
         f.seek(0)
         content=f.readlines()
+        f.close()
         lines=(line.rstrip() for line in content)
         lines=list(line for line in lines if line)
         for line in lines:
@@ -345,6 +346,7 @@ class Evaluator:
                 else:
                     GrammarError(f"Wrong grammar usage: '{word}'. Word is not found in our keywords, and isn't quoted.")
                     goodGrammar=False
+        os.remove(f'{string}.BaRT')
 run=''
 import re
 def decompile(content):
@@ -353,7 +355,7 @@ def main():
     try:
         ev=Evaluator(run)
         ev.run(run)
-    except:
+    except FileNotFoundError:
         print("Prevented crash.")
         GrammarError(f"Wrong grammar usage: '{word}'. Word is not found in our keywords, and isn't quoted.")
 print("Bareline - Bare")
