@@ -1,22 +1,4 @@
-import os
-import webbrowser
-import requests
-import sys
-class InvalidArgumentError:
-    def __init__(self,details):
-        print("InvalidArgumentError:")
-        print(f"    {details}")
-        input()
-class GrammarError:
-    def __init__(self,details):
-        print("GrammarError:")
-        print(f"    {details}")
-        input()
-class InvalidLinkError:
-    def __init__(self,details):
-        print("InvalidLinkError:")
-        print(f"    {details}")
-        input()
+import os,sys,webbrowser,requests
 class InvalidLinkSettingError:
     def __init__(self,details):
         print("InvalidLinkSettingError:")
@@ -32,9 +14,13 @@ class UseError:
         print("UseError:")
         print(f"    {details}")
         input()
+class Error:
+    def __init__(self,name,details):
+        print(f"{name}:")
+        print(f"    {details}")
 class Evaluator:
     def __init__(self, file):
-        self.keywords=['say','ask','lookup.link','lookup.key','lookup.all','readout','say-previously-read','__root__','__name__','__package__','__doc__','delete','__keywords__','get-html','make','use','__system_arguments__','__change_window_title__','start','open','write','close','write-previously-read','read']
+        self.keywords=['say','ask','hyperlink','lookup.key','readout','say-previously-read','__root__','__name__','__package__','__doc__','delete','__keywords__','get-html','make','use','__system_arguments__','__change_window_title__','start','open','write','close','write-previously-read','read','if','default:','__get_keywords__']
         self.__file__=file
         self.r=None
         self.root=__file__
@@ -51,6 +37,9 @@ class Evaluator:
         self.importname=None
         self.loop=''
         self.read=''
+        self.consequences=''
+        self.elseconsequences=''
+        self.parameters=[]
     def runFunc(self,function,name):
         f=open(f'${name}.BaRT','w+')
         f.write(function)
@@ -72,21 +61,18 @@ class Evaluator:
                     elif word=='start':
                         v=line[6:].replace('"','').replace("'",'')
                         os.startfile(v)
-                    elif word=='lookup.link':
-                        v=line[12:].replace('"','').replace("'",'')
+                    elif word=='hyperlink':
+                        v=line[10:].replace('"','').replace("'",'')
                         if not v.startswith('http'):
-                            InvalidLinkError(f"Link '{v}' does not start with 'http' or 'https', please include this or use lookup.key")
+                            Error("InvalidLinkError",f"Link '{v}' does not start with 'http' or 'https', please include this or use lookup.key")
                         else:
                             webbrowser.open(v)
                     elif word=='lookup.key':
                         v=line[11:].replace('"','').replace("'",'')
                         if v.startswith('http'):
-                            InvalidLinkError(f"Keyword '{v}' starts with 'http' or 'https', please remove this or use lookup.all")
+                            Error("InvalidLinkError",f"Keyword '{v}' starts with 'http' or 'https', please remove this or use hyperlink.")
                         else:
                             webbrowser.open(v)
-                    elif word=='lookup.all':
-                        v=line[11:].replace('"','').replace("'",'')
-                        webbrowser.open(v)
                     elif word=='readout':
                         v=line[8:].replace('"','').replace("'",'').replace('\n','')
                         f=open(v,'r')
@@ -132,12 +118,16 @@ class Evaluator:
                             v2=r.split(' -> ')
                             for v1 in v2:
                                 if v1.startswith('[') and v1.endswith(']'):
-                                    p=v1.replace('[','').replace(']','')
-                                    print(p)
+                                    v1=v1.replace('[','').replace(']','')
+                                    if v1=='':
+                                        p=os.getcwd()
+                                    else:
+                                        p=v1
                                 else:
                                     vt=v1.replace('<','').replace('>','')
                         v=f'{p}\{vt}\{vt}.ba'
                         self.run(v)
+                        self.imports.append(vt)
                     elif word=='__system_arguments__':
                         v=sys.argv
                         for arg in v:
@@ -170,8 +160,46 @@ class Evaluator:
                         v=line[22:].replace("'",'').replace('"','')
                         j=open(v,'w')
                         j.write(self.read)
+                    elif word=='if':
+                        v=line[3:]
+                        i=v.split(': ')
+                        for r in i:
+                            if r==i[1]:
+                                c=r
+                                question=i[0]
+                                consequences=c.split(' & ')
+                        for x in consequences:
+                            self.consequences+=f'\n{x}'
+                        Answer=False
+                        Answer=eval(question)
+                        if Answer==True:
+                            b=open('if.BaRT','w+')
+                            b.write(self.consequences)
+                            b.close()
+                            self.run('if.BaRT')
+                            os.remove('if.BaRT')
+                        else:
+                            z=open('else.BaRT','w+')
+                            z.write(self.elseconsequences)
+                            z.close()
+                            self.run('else.BaRT')
+                            os.remove('else.BaRT')
+                    elif word=='default:':
+                        v=line[9:]
+                        i=v.split(': ')
+                        for r in i:
+                            if r=='default':
+                                i.remove(r)
+                        h=str(i).replace('[','').replace(']','').replace("'",'').replace('"','').split(' & ')
+                        for m in h:
+                            self.elseconsequences+=f'\n{m}'
+                    elif word=='__get_keywords__':
+                        if 'allkeywords' in self.imports:
+                            print(self.keywords)
+                        else:
+                            pass
                     else:
-                        InvalidArgumentError(f"Invalid argument: '{word}'")
+                        Error("InvalidArgumentError",f"Invalid argument: '{word}'")
                 elif not word in self.keywords and "'" not in word and '"' in word:
                     pass
                 elif not word in self.keywords and '"' not in word and "'" in word:
@@ -186,7 +214,7 @@ class Evaluator:
                     pass
                 elif not word in self.keywords and "'" not in word and '"' not in word and '$' in line:
                     if word==f'${self.mainname}':
-                        self.runFunc(self.tasks,self.mainname)
+                        self.runFunc(self.tasks,self.main)
                     else:
                         InvalidFunctionError(f"Invalid function '{word}'. Double check if you have spelled it right or have made it.")
                 elif not word in self.keywords and "'" not in word and '"' not in word and word.startswith('<') and word.endswith('>'):
@@ -194,8 +222,7 @@ class Evaluator:
                 elif word in self.keywords:
                     pass
                 else:
-                    GrammarError(f"Wrong grammar usage: '{word}'. Word is not found in our keywords, and isn't quoted.")
-                    goodGrammar=False
+                    Error("GrammarError",f"Bad grammar: {word}")
         f.close()
         os.remove(f'${name}.BaRT')
     def run(self,file):
@@ -217,21 +244,18 @@ class Evaluator:
                     elif word=='start':
                         v=line[6:].replace('"','').replace("'",'')
                         os.startfile(v)
-                    elif word=='lookup.link':
-                        v=line[12:].replace('"','').replace("'",'')
+                    elif word=='hyperlink':
+                        v=line[10:].replace('"','').replace("'",'')
                         if not v.startswith('http'):
-                            InvalidLinkError(f"Link '{v}' does not start with 'http' or 'https', please include this or use lookup.key")
+                            Error("InvalidLinkError",f"Link '{v}' does not start with 'http' or 'https', please include this or use lookup.key")
                         else:
                             webbrowser.open(v)
                     elif word=='lookup.key':
                         v=line[11:].replace('"','').replace("'",'')
                         if v.startswith('http'):
-                            InvalidLinkError(f"Keyword '{v}' starts with 'http' or 'https', please remove this or use lookup.all")
+                            Error("InvalidLinkError",f"Keyword '{v}' starts with 'http' or 'https', please remove this or use hyperlink.")
                         else:
                             webbrowser.open(v)
-                    elif word=='lookup.all':
-                        v=line[11:].replace('"','').replace("'",'')
-                        webbrowser.open(v)
                     elif word=='readout':
                         v=line[8:].replace('"','').replace("'",'').replace('\n','')
                         f=open(v,'r')
@@ -285,6 +309,7 @@ class Evaluator:
                                     vt=v1.replace('<','').replace('>','')
                         v=f'{p}\{vt}\{vt}.ba'
                         self.run(v)
+                        self.imports.append(vt)
                     elif word=='__system_arguments__':
                         v=sys.argv
                         for arg in v:
@@ -317,8 +342,42 @@ class Evaluator:
                         v=line[22:].replace("'",'').replace('"','')
                         j=open(v,'w')
                         j.write(self.read)
+                    elif word=='if':
+                        v=line[3:]
+                        i=v.split(': ')
+                        for r in i:
+                            if r==i[1]:
+                                c=r
+                                question=i[0]
+                                consequences=c.split(' | ')
+                        for x in consequences:
+                            self.consequences+=f'\n{x}'
+                        Answer=False
+                        Answer=eval(question)
+                        if Answer==True:
+                            b=open('if.BaRT','w+')
+                            b.write(self.consequences)
+                            b.close()
+                            self.run('if.BaRT')
+                            os.remove('if.BaRT')
+                        else:
+                            z=open('else.BaRT','w+')
+                            z.write(self.elseconsequences)
+                            z.close()
+                            self.run('else.BaRT')
+                            os.remove('else.BaRT')
+                    elif word=='default:':
+                        v=line[9:]
+                        h=v.split(' | ')
+                        for m in h:
+                            self.elseconsequences+=f'\n{m}'
+                    elif word=='__get_keywords__':
+                        if 'allkeywords' in self.imports:
+                            print(self.keywords)
+                        else:
+                            pass
                     else:
-                        InvalidArgumentError(f"Invalid argument: '{word}'")
+                        Error("InvalidArgumentError",f"Invalid argument: '{word}'")
                 elif not word in self.keywords and "'" not in word and '"' in word:
                     pass
                 elif not word in self.keywords and '"' not in word and "'" in word:
@@ -340,9 +399,12 @@ class Evaluator:
                     pass
                 elif word not in self.keywords and '"' not in word and "'" not in word and ':' in line:
                     pass
+                elif word not in self.keywords and '"' not in word and "'" not in word and 'if' in line:
+                    pass
+                elif '-' in word:
+                    pass
                 else:
-                    GrammarError(f"Wrong grammar usage: '{word}'. Word is not found in our keywords, and isn't quoted.")
-                    goodGrammar=False
+                    Error("GrammarError",f"Bad grammar: {word}")
 run=sys.argv[1]
 import re
 def decompile(content):
