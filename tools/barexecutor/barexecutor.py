@@ -1,13 +1,33 @@
-import os
-import sys
-import re
-import shutil
-import subprocess
-import requests
+import os,sys,re,shutil,subprocess,requests
 ptf=os.getcwd()
-print(sys.argv)
 def compile(content):
-  return re.sub(r'[a-z]', lambda match: f"x{ord(match.group())-ord('a')+1}/", content)
+    content=content.replace('a','\61---')
+    content=content.replace('b','\62---')
+    content=content.replace('c','\63---')
+    content=content.replace('d','\64---')
+    content=content.replace('e','\65---')
+    content=content.replace('f','\66---')
+    content=content.replace('g','\67---')
+    content=content.replace('h','\60---')
+    content=content.replace('i','\0---')
+    content=content.replace('j','\10---')
+    content=content.replace('k','\11---')
+    content=content.replace('l','\17---')
+    content=content.replace('m','\13---')
+    content=content.replace('n','\14---')
+    content=content.replace('o','\16---')
+    content=content.replace('p','\70---')
+    content=content.replace('q','\71---')
+    content=content.replace('r','\72---')
+    content=content.replace('s','\73---')
+    content=content.replace('t','\74---')
+    content=content.replace('u','\75---')
+    content=content.replace('v','\76---')
+    content=content.replace('w','\77---')
+    content=content.replace('x','\50---')
+    content=content.replace('y','\51---')
+    content=content.replace('z','\52---')
+    return content
 def main():
     folder=f'{sys.argv[1][:-3]}'
     if not os.path.exists(folder):
@@ -31,7 +51,10 @@ def main():
     barescript=requests.get('https://raw.githubusercontent.com/GHGDev-11/Bare/main/bare.py').text.replace('run=sys.argv[1]',f'run="{sys.argv[1][:-3]}.bac"')
     m=open(f'{sys.argv[1][:-3]}/{sys.argv[1][:-3]}.py','w+').write(barescript)
     print(f"Starting compilation...")
-    subprocess.call(f'include/pyinstaller --onefile --icon {sys.argv[2]} {sys.argv[1][:-3]}/{sys.argv[1][:-3]}.py')
+    if 'window-app' in sys.argv:
+        subprocess.call(f'pyinstaller --noconsole --onefile --icon {sys.argv[2]} {sys.argv[1][:-3]}/{sys.argv[1][:-3]}.py')
+    else:
+        subprocess.call(f'pyinstaller --onefile --icon {sys.argv[2]} {sys.argv[1][:-3]}/{sys.argv[1][:-3]}.py')
     os.remove(f'{sys.argv[1][:-3]}/{sys.argv[1][:-3]}.py')
     print(f"Finalizing...")
     shutil.copy(f'dist/{sys.argv[1][:-3]}.exe',f'{sys.argv[1][:-3]}/{sys.argv[1][:-3]}.exe')
@@ -50,5 +73,7 @@ def main():
     os.chdir('..')
     os.rmdir('build')
     print("Done!")
-if __name__ == "__main__":
+try:
     main()
+except IndexError:
+    print("Syntax: [Bare File] [Icon]")
